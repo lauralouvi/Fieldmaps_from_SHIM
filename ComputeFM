@@ -1,0 +1,27 @@
+#!/bin/bash
+# CREATING FIELDMAPS FROM SHIM SEQUENCES	
+	cd $FM_DIR
+
+### Create MAGNITUDE FM
+# Start by registering SHIM1 to T1 using FLIRT
+	flirt -in $SHIM1 -ref $T1 -out shim1_reg -bins 256 -cost corratio -searchrx -90 90 -searchry -90 90 -searchrz -90 90 -dof 12  -interp trilinear &
+
+# Create the magnitude fm from the registered shim1 and a mask
+	fslmaths $T1 -bin $T1_mask
+	wait
+	fslmaths $T1_mask -mul shim1_reg.nii.gz fm_mag &
+
+# Also create a brain extracted magnitude fieldmap
+# If used as fsl input: brain extracted fielmap must be named fieldmap_brain and be located in the same directory
+# same using T1_brain 
+	fslmaths $T1_brain -bin ${T1_mask}2.nii.gz
+	fslmaths ${T1_mask}2.nii.gz -mul shim1_reg.nii.gz fm_mag_brain &
+	echo "========================= done creating magnitude fieldmap ============================"
+
+### Create PHASE FIELDMAP
+# Convert SHIM3 to radians
+	fslmaths $SHIM3 -mul 123.21408958 -mul 0.0628 fm_rads -odt float
+
+# Register output in radians to T1 using FLIRT
+	flirt -in fm_rads -ref $T1 -out fm_rads_reg -bins 256 -cost corratio -searchrx -90 90 -searchry -90 90 -searchrz -90 90 -dof 12  -interp trilinear &
+	echo "========================== done creating phase fieldmap ==============================="
